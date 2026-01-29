@@ -207,7 +207,7 @@ export const setupCommand = new Command()
     await stepMcp();
 
     // Show banner right before the interactive wellness questions
-    await printBanner();
+    printBanner();
 
     // Step 3 & 4: Wellness
     const wantsWellness = await Confirm.prompt({
