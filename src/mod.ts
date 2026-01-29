@@ -3,11 +3,34 @@
  */
 
 import { cli } from "./cli/mod.ts";
+import { hasValidCredentials } from "./auth/credentials.ts";
+import { isConfigured, loadWellnessState } from "./wellness/state.ts";
+
+/**
+ * Check if this is a first run (no auth + no wellness config).
+ * If so, auto-launch the setup wizard.
+ */
+async function shouldAutoSetup(): Promise<boolean> {
+  // Only trigger on bare `lifeprint` with no args (or `lifeprint --help`)
+  if (Deno.args.length > 0) return false;
+
+  const loggedIn = await hasValidCredentials();
+  if (loggedIn) {
+    const state = await loadWellnessState();
+    if (isConfigured(state)) return false;
+  }
+  return true;
+}
 
 // Run the CLI
 if (import.meta.main) {
   try {
-    await cli.parse(Deno.args);
+    if (await shouldAutoSetup()) {
+      const { setupCommand } = await import("./cli/commands/setup.ts");
+      await setupCommand.parse([]);
+    } else {
+      await cli.parse(Deno.args);
+    }
   } catch (error) {
     if (error instanceof Error && error.message.includes("Unknown command")) {
       // Cliffy already prints the error, just exit

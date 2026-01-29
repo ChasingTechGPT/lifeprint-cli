@@ -301,12 +301,19 @@ function getSuccessHtml(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
   <title>Login Successful - LifePrint CLI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background: #0f172a;
+      background-image:
+        radial-gradient(circle at 30% 20%, rgba(29, 191, 115, 0.12) 0%, transparent 50%),
+        radial-gradient(circle at 70% 80%, rgba(18, 184, 178, 0.08) 0%, transparent 50%);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -315,29 +322,53 @@ function getSuccessHtml(): string {
     }
     .container {
       background: white;
-      border-radius: 1rem;
+      border-radius: 1.5rem;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-      padding: 3rem;
+      padding: 2.5rem 2rem;
       text-align: center;
-      max-width: 400px;
+      max-width: 420px;
+      width: 100%;
     }
-    .icon { font-size: 4rem; margin-bottom: 1.5rem; }
-    h1 { font-size: 1.5rem; color: #111827; margin-bottom: 0.5rem; }
-    p { color: #6b7280; margin-bottom: 1.5rem; }
-    .note { font-size: 0.875rem; color: #9ca3af; }
+    .icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, #1dbf73, #12b8b2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+    }
+    .icon svg { width: 32px; height: 32px; color: white; }
+    h1 { font-size: 1.375rem; font-weight: 700; color: #222325; margin-bottom: 0.625rem; }
+    p { color: #37393c; margin-bottom: 0.5rem; font-size: 0.9375rem; line-height: 1.5; }
+    .note { font-size: 0.8125rem; color: #6b7280; margin-top: 1rem; }
+    .emblem { margin-top: 1.5rem; opacity: 0.15; }
+    .emblem svg { width: 32px; height: auto; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="icon">✓</div>
-    <h1>Login Successful!</h1>
+    <div class="icon">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <h1>You're Connected</h1>
     <p>You can now close this window and return to your terminal.</p>
     <p class="note">The LifePrint CLI is now authenticated.</p>
+    <div class="emblem">
+      <svg viewBox="0 0 348.5 315.2" xmlns="http://www.w3.org/2000/svg">
+        <g fill="#222325" stroke-width="0">
+          <path d="M298.62,102.21c13.19,13.19,16.69,33.41,8.29,50.07-5.59,11.08-13,21.47-22.25,30.71l-58.3,58.3c-28.8,28.8-75.48,28.8-104.28,0l-58.3-58.3c-9.25-9.25-16.67-19.65-22.25-30.73-8.39-16.66-4.89-36.87,8.29-50.06l9.46-9.46c-1.58,27.58,8.17,55.69,29.24,76.76l50,50c19.72,19.72,51.69,19.72,71.41,0l50-50c19.6-19.62,29.42-45.31,29.42-71.02,0-1.9-.05-3.82-.17-5.72l9.45,9.45Z"/>
+          <path d="M340.28,195.49c-5,6.9-10.58,13.46-16.82,19.65l-65.27,65.27c-46.38,46.38-121.58,46.38-167.96,0L24.96,215.15c-6.11-6.11-11.64-12.57-16.55-19.3-5.67-7.7-8.41-16.77-8.41-25.76,0-11.2,4.29-22.35,12.75-30.81,6.64,22.84,18.94,44.39,36.96,62.41l58.51,58.51c36.47,36.43,95.56,36.43,132.03-.04l58.51-58.47c18.01-18.01,30.32-39.57,36.91-62.41,15.09,15.09,17.17,38.99,4.6,56.21Z"/>
+          <path d="M257.89,61.24l-45.38-45.38c-21.15-21.15-55.43-21.15-76.57,0l-45.38,45.38c-15.06,15.06-19,37.06-11.72,55.76,2.54-6.56,6.43-12.69,11.72-17.98l16.54-16.54,45.44-45.44h0c11.98-11.98,31.39-11.98,43.37,0l61.98,61.98c5.29,5.29,9.22,11.42,11.72,17.98,7.28-18.7,3.34-40.7-11.72-55.76Z"/>
+          <path d="M245.91,111.01l-1.4-1.44c-.85,1.48-1.9,2.83-3.17,4.1l-61.97,62.01c-2.84,2.84-7.45,2.84-10.29,0l-61.98-62.01c-1.27-1.27-2.33-2.62-3.17-4.1l-1.4,1.44c-.08.04-.13.13-.21.21-9.86,10.03-9.1,26.4.85,36.34l50.78,50.72c11.21,11.2,29.38,11.2,40.59,0l50.75-50.72c9.94-9.94,10.7-26.32.85-36.34-.08-.08-.13-.17-.21-.21Z"/>
+        </g>
+      </svg>
+    </div>
   </div>
-  <script>
-    // Auto-close after 3 seconds
-    setTimeout(() => window.close(), 3000);
-  </script>
+  <script>setTimeout(() => window.close(), 3000);</script>
 </body>
 </html>
 `;
@@ -353,12 +384,17 @@ function getErrorHtml(error: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
   <title>Login Failed - LifePrint CLI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background: #0f172a;
+      background-image: radial-gradient(circle at 30% 20%, rgba(239, 68, 68, 0.08) 0%, transparent 50%);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -367,21 +403,36 @@ function getErrorHtml(error: string): string {
     }
     .container {
       background: white;
-      border-radius: 1rem;
+      border-radius: 1.5rem;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-      padding: 3rem;
+      padding: 2.5rem 2rem;
       text-align: center;
-      max-width: 400px;
+      max-width: 420px;
+      width: 100%;
     }
-    .icon { font-size: 4rem; margin-bottom: 1.5rem; }
-    h1 { font-size: 1.5rem; color: #111827; margin-bottom: 0.5rem; }
-    p { color: #6b7280; margin-bottom: 1rem; }
-    .error { background: #fef2f2; border: 1px solid #fecaca; border-radius: 0.5rem; padding: 1rem; color: #991b1b; font-size: 0.875rem; }
+    .icon {
+      width: 64px;
+      height: 64px;
+      background: #fee2e2;
+      border-radius: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+    }
+    .icon svg { width: 28px; height: 28px; color: #dc2626; }
+    h1 { font-size: 1.375rem; font-weight: 700; color: #222325; margin-bottom: 0.5rem; }
+    p { color: #37393c; margin-bottom: 1rem; font-size: 0.9375rem; line-height: 1.5; }
+    .error { background: #fef2f2; border: 1px solid #fecaca; border-radius: 0.75rem; padding: 1rem; color: #991b1b; font-size: 0.8125rem; line-height: 1.5; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="icon">✕</div>
+    <div class="icon">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </div>
     <h1>Login Failed</h1>
     <p>Please try again from the terminal.</p>
     <div class="error">${error}</div>

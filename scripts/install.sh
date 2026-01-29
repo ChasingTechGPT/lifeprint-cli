@@ -65,12 +65,8 @@ resolve_url() {
 choose_install_dir() {
   if [ -w "$INSTALL_DIR" ]; then
     TARGET_DIR="$INSTALL_DIR"
-  elif command -v sudo &>/dev/null; then
-    info "Requires sudo to install to ${INSTALL_DIR}"
-    USE_SUDO=true
-    TARGET_DIR="$INSTALL_DIR"
   else
-    warn "Cannot write to ${INSTALL_DIR}, installing to ${FALLBACK_DIR}"
+    # Install to user-local dir (no sudo needed, works with curl | bash)
     TARGET_DIR="$FALLBACK_DIR"
     mkdir -p "$TARGET_DIR"
   fi
@@ -81,8 +77,8 @@ download() {
   local tmp_file
   tmp_file="$(mktemp)"
 
-  info "Downloading LifePrint CLI..."
-  info "  ${DOWNLOAD_URL}"
+  info "Downloading LifePrint CLI..." >&2
+  info "  ${DOWNLOAD_URL}" >&2
 
   if command -v curl &>/dev/null; then
     curl -fsSL --progress-bar "$DOWNLOAD_URL" -o "$tmp_file" || error "Download failed. Check your internet connection or the release URL."
@@ -100,13 +96,8 @@ install_binary() {
   local tmp_file="$1"
   local target="${TARGET_DIR}/${BINARY_NAME}"
 
-  if [ "${USE_SUDO:-false}" = "true" ]; then
-    sudo mv "$tmp_file" "$target"
-    sudo chmod +x "$target"
-  else
-    mv "$tmp_file" "$target"
-    chmod +x "$target"
-  fi
+  mv "$tmp_file" "$target"
+  chmod +x "$target"
 
   success "Installed to ${target}"
 }
@@ -168,10 +159,14 @@ main() {
   ensure_path
   verify
 
-  printf "\n${BOLD}  Get started:${NC}\n"
-  printf "    ${CYAN}lifeprint login${NC}     Sign in to your account\n"
-  printf "    ${CYAN}lifeprint agenda${NC}    View today's agenda\n"
-  printf "    ${CYAN}lifeprint --help${NC}    See all commands\n\n"
+  printf "\n"
+
+  # Run full setup wizard (auth + wellness configuration)
+  # Redirect stdin from /dev/tty so interactive prompts work in curl|bash
+  local cli_path="${TARGET_DIR}/${BINARY_NAME}"
+  if [ -x "$cli_path" ]; then
+    "$cli_path" setup < /dev/tty
+  fi
 }
 
 main

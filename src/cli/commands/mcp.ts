@@ -39,6 +39,7 @@ export const mcpCommand = new Command()
     .description("Configure Claude Code to use LifePrint MCP server")
     .option("-g, --global", "Install globally (default)")
     .option("--path <path:string>", "Path to lifeprint binary (auto-detected if not specified)")
+    .option("--skip-wellness", "Skip the wellness setup prompt (used by setup wizard)")
     .action(async (options) => {
       const configPath = getClaudeConfigPath();
 
@@ -127,6 +128,23 @@ export const mcpCommand = new Command()
       console.log(`LifePrint MCP server configured in ${configPath}`);
       console.log(`Command: ${lifeprintPath} mcp serve`);
       console.log("\nRestart Claude Code for changes to take effect.");
+
+      // Offer wellness setup (skip when called from the setup wizard)
+      if (!options.skipWellness) {
+        try {
+          const { Confirm } = await import("@cliffy/prompt");
+          const setupWellness: boolean = await Confirm.prompt({
+            message: "Would you like to set up wellness enforcement? (Recommended)",
+            default: true,
+          });
+          if (setupWellness) {
+            const { runWellnessSetup } = await import("./setup.ts");
+            await runWellnessSetup();
+          }
+        } catch {
+          // Prompt not available or user cancelled — skip silently
+        }
+      }
     }))
   .command("uninstall", new Command()
     .description("Remove LifePrint MCP server from Claude Code config")

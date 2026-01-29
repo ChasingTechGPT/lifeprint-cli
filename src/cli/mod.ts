@@ -14,6 +14,8 @@ import { agendaCommand } from "./commands/agenda.ts";
 import { movementCommand } from "./commands/movement.ts";
 import { meditationCommand } from "./commands/meditation.ts";
 import { householdCommand } from "./commands/household.ts";
+import { wellnessCommand } from "./commands/wellness.ts";
+import { setupCommand } from "./commands/setup.ts";
 
 const VERSION = "0.1.0";
 
@@ -34,4 +36,7 @@ export const cli = new Command()
   .command("agenda", agendaCommand)
   .command("movement", movementCommand)
   .command("meditation", meditationCommand)
-  .command("household", householdCommand);
+  .command("household", householdCommand)
+  // Wellness & Setup
+  .command("wellness", wellnessCommand)
+  .command("setup", setupCommand);
