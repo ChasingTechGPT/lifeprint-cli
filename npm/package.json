@@ -1,0 +1,41 @@
+{
+  "name": "lifeprint",
+  "version": "0.1.0",
+  "description": "LifePrint CLI — AI-powered lifestyle planning from your terminal",
+  "homepage": "https://lifeprintpro.com/cli",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ChasingTechGPT/lifeprint-cli"
+  },
+  "license": "MIT",
+  "bin": {
+    "lifeprint": "./bin/lifeprint.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "files": [
+    "bin/",
+    "scripts/"
+  ],
+  "keywords": [
+    "lifeprint",
+    "cli",
+    "ai",
+    "meal-planning",
+    "lifestyle",
+    "health"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ]
+}
