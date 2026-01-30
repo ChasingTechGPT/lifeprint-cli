@@ -36,6 +36,10 @@ export interface WellnessCurrentBreak {
   activityInstructions: string[] | null;
   cooldownExpiresAt: string | null;
   completedAt: string | null;
+  suggestionId: string | null;
+  contentType: string | null;
+  contentId: string | null;
+  deepLinkUrl: string | null;
 }
 
 export interface WellnessPowerBreak {
@@ -46,7 +50,11 @@ export interface WellnessPowerBreak {
 
 export interface WellnessSync {
   lastSyncAt: string | null;
-  pendingCompletions: Array<{ type: string; completedAt: string }>;
+  pendingCompletions: Array<{
+    type: string;
+    completedAt: string;
+    suggestionId?: string | null;
+  }>;
 }
 
 export interface WellnessState {
@@ -86,6 +94,10 @@ export function createDefaultState(): WellnessState {
       activityInstructions: null,
       cooldownExpiresAt: null,
       completedAt: null,
+      suggestionId: null,
+      contentType: null,
+      contentId: null,
+      deepLinkUrl: null,
     },
     powerBreak: {
       lastBreakAt: null,
@@ -131,10 +143,37 @@ export async function saveWellnessState(state: WellnessState): Promise<void> {
   }
 }
 
+// --- Constants ---
+
+/**
+ * If the user hasn't sent a prompt in this many minutes, consider the session idle.
+ * When idle, we auto-reset the session to prevent false positives from leaving
+ * terminals open overnight.
+ */
+export const IDLE_THRESHOLD_MINUTES = 30;
+
 // --- Query Functions ---
 
 export function isConfigured(state: WellnessState): boolean {
   return state.config.sessionLimit.enabled || state.config.powerBreaks.enabled;
+}
+
+/**
+ * Check if the session has been idle for too long (no prompts in IDLE_THRESHOLD_MINUTES).
+ * Returns true if the session should be auto-reset.
+ */
+export function isSessionIdle(state: WellnessState): boolean {
+  if (!state.session.lastPromptAt) {
+    // No prompts yet in this session - check session start time
+    if (!state.session.startedAt) return false;
+    const startTime = new Date(state.session.startedAt).getTime();
+    const idleThreshold = IDLE_THRESHOLD_MINUTES * 60 * 1000;
+    return Date.now() - startTime >= idleThreshold;
+  }
+
+  const lastPromptTime = new Date(state.session.lastPromptAt).getTime();
+  const idleThreshold = IDLE_THRESHOLD_MINUTES * 60 * 1000;
+  return Date.now() - lastPromptTime >= idleThreshold;
 }
 
 export function getTimeWorkedMs(state: WellnessState): number {
@@ -176,6 +215,14 @@ export function isPowerBreakDue(state: WellnessState): boolean {
 
 export function isBreakActive(state: WellnessState): boolean {
   return state.currentBreak.type !== null && state.currentBreak.completedAt === null;
+}
+
+/**
+ * Check if there's a break that needs processing (active, completed, or expired).
+ * This is used to ensure the hook enters the break-handling logic even after completion.
+ */
+export function hasBreakToProcess(state: WellnessState): boolean {
+  return state.currentBreak.type !== null;
 }
 
 export function isBreakCompleteOrExpired(state: WellnessState): boolean {
@@ -227,9 +274,20 @@ export function getCooldownRemaining(state: WellnessState): number {
 
 // --- Mutation Functions ---
 
+export interface ApiBreakContent {
+  suggestionId: string | null;
+  contentType: string;
+  contentName: string;
+  contentId: string | null;
+  instructions: string[];
+  durationSeconds: number;
+  deepLinkUrl: string;
+}
+
 export function triggerBreak(
   state: WellnessState,
   type: "session_limit" | "power_break",
+  apiContent?: ApiBreakContent | null,
 ): WellnessState {
   const now = new Date().toISOString();
   let cooldownMinutes: number;
@@ -239,7 +297,9 @@ export function triggerBreak(
     cooldownMinutes = state.config.sessionLimit.cooldownMinutes;
   } else {
     cooldownMinutes = 5; // Power breaks auto-expire in 5 min
-    activity = selectRandomActivity(state.powerBreak.recentActivityIds);
+    if (!apiContent) {
+      activity = selectRandomActivity(state.powerBreak.recentActivityIds);
+    }
   }
 
   const cooldownExpiresAt = new Date(
@@ -251,10 +311,14 @@ export function triggerBreak(
     currentBreak: {
       type,
       triggeredAt: now,
-      activityName: activity?.name ?? null,
-      activityInstructions: activity?.instructions ?? null,
+      activityName: apiContent?.contentName ?? activity?.name ?? null,
+      activityInstructions: apiContent?.instructions ?? activity?.instructions ?? null,
       cooldownExpiresAt,
       completedAt: null,
+      suggestionId: apiContent?.suggestionId ?? null,
+      contentType: apiContent?.contentType ?? null,
+      contentId: apiContent?.contentId ?? null,
+      deepLinkUrl: apiContent?.deepLinkUrl ?? null,
     },
   };
 }
@@ -273,7 +337,11 @@ export function completeBreak(state: WellnessState): WellnessState {
       ...state.sync,
       pendingCompletions: [
         ...state.sync.pendingCompletions,
-        { type: breakType ?? "unknown", completedAt: now },
+        {
+          type: breakType ?? "unknown",
+          completedAt: now,
+          suggestionId: state.currentBreak.suggestionId,
+        },
       ],
     },
   };
@@ -305,6 +373,10 @@ export function resetBreakState(state: WellnessState): WellnessState {
       activityInstructions: null,
       cooldownExpiresAt: null,
       completedAt: null,
+      suggestionId: null,
+      contentType: null,
+      contentId: null,
+      deepLinkUrl: null,
     },
   };
 }
@@ -333,6 +405,10 @@ export function resetSession(state: WellnessState): WellnessState {
       activityInstructions: null,
       cooldownExpiresAt: null,
       completedAt: null,
+      suggestionId: null,
+      contentType: null,
+      contentId: null,
+      deepLinkUrl: null,
     },
     powerBreak: {
       ...state.powerBreak,
@@ -342,8 +418,30 @@ export function resetSession(state: WellnessState): WellnessState {
   };
 }
 
+/**
+ * Record a new prompt, resetting the session if it was idle.
+ * This prevents false positives from leaving terminals open overnight.
+ */
 export function recordPrompt(state: WellnessState): WellnessState {
   const now = new Date().toISOString();
+
+  // If session was idle, start fresh
+  if (isSessionIdle(state)) {
+    return {
+      ...state,
+      session: {
+        startedAt: now,
+        promptCount: 1,
+        lastPromptAt: now,
+      },
+      // Also reset power break timer since this is a fresh session
+      powerBreak: {
+        ...state.powerBreak,
+        lastBreakAt: null,
+      },
+    };
+  }
+
   return {
     ...state,
     session: {

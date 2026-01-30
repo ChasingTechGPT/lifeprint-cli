@@ -3,7 +3,7 @@
  * Heartbeat sync with Supabase for cross-device completion detection
  */
 
-import { callTool } from "../api/client.ts";
+import { apiRequest } from "../api/client.ts";
 import type { WellnessState } from "./state.ts";
 import { loadWellnessState, saveWellnessState } from "./state.ts";
 
@@ -64,10 +64,14 @@ async function performSync(state: WellnessState): Promise<void> {
 async function flushPendingCompletions(state: WellnessState): Promise<void> {
   for (const completion of state.sync.pendingCompletions) {
     try {
-      await callTool<{ success: boolean }>("wellness_complete", {
-        break_type: completion.type,
-        completed_at: completion.completedAt,
-        source: "cli",
+      await apiRequest<{ success: boolean }>("lifeprint-api/wellness/complete", {
+        method: "POST",
+        body: {
+          break_type: completion.type,
+          completed_at: completion.completedAt,
+          source: "cli",
+          suggestion_id: completion.suggestionId ?? null,
+        },
       });
     } catch {
       // Will retry on next sync
@@ -89,7 +93,10 @@ async function flushPendingCompletions(state: WellnessState): Promise<void> {
 
 async function checkRemoteStatus(): Promise<WellnessStatusResponse | null> {
   try {
-    const result = await callTool<WellnessStatusResponse>("wellness_status", {});
+    const result = await apiRequest<WellnessStatusResponse>(
+      "lifeprint-api/wellness/status",
+      { method: "GET" },
+    );
     return result;
   } catch {
     return null;

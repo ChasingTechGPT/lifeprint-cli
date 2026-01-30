@@ -15,6 +15,8 @@ import {
   isBreakCompleteOrExpired,
   isSessionLimitReached,
   isPowerBreakDue,
+  isSessionIdle,
+  hasBreakToProcess,
   triggerBreak,
   resetBreakState,
   resetSession,
@@ -26,28 +28,81 @@ import {
   formatTimeOfDay,
 } from "./state.ts";
 import type { WellnessState } from "./state.ts";
+import { fetchBreakContent } from "./break-content.ts";
+
+/**
+ * Commands that should bypass the wellness check entirely.
+ * This prevents the "Catch-22" where users can't run `lifeprint wellness complete`
+ * because the hook blocks their prompt.
+ */
+const BYPASS_PATTERNS = [
+  /lifeprint\s+wellness/i,
+  /lifeprint\s+status/i,
+  /lifeprint\s+--help/i,
+  /lifeprint\s+-h/i,
+];
+
+/**
+ * Check if a prompt should bypass wellness enforcement.
+ */
+function shouldBypass(promptText: string): boolean {
+  return BYPASS_PATTERNS.some((pattern) => pattern.test(promptText));
+}
+
+/**
+ * Parse the user's prompt from Claude Code hook input (JSON on stdin).
+ */
+function parsePromptFromStdin(stdinContent: string): string {
+  try {
+    const data = JSON.parse(stdinContent);
+    // Claude Code sends: { prompt: "user's message" }
+    return data?.prompt ?? "";
+  } catch {
+    // Not valid JSON, return raw content
+    return stdinContent;
+  }
+}
 
 /**
  * Run the wellness hook check. Called from `lifeprint wellness check`.
  */
 export async function runHookCheck(): Promise<void> {
-  // Read stdin (Claude Code sends hook JSON, but we don't need it for decisions)
+  // Read stdin (Claude Code sends hook JSON with the user's prompt)
+  let stdinContent = "";
   try {
     const buf = new Uint8Array(65536);
-    await Deno.stdin.read(buf);
+    const n = await Deno.stdin.read(buf);
+    if (n !== null) {
+      stdinContent = new TextDecoder().decode(buf.subarray(0, n));
+    }
   } catch {
     // stdin may be closed or empty, that's fine
   }
 
-  const state = await loadWellnessState();
+  // Check if the prompt should bypass wellness enforcement entirely
+  const promptText = parsePromptFromStdin(stdinContent);
+  if (shouldBypass(promptText)) {
+    Deno.exit(0);
+  }
+
+  let state = await loadWellnessState();
 
   // Not configured → allow through
   if (!isConfigured(state)) {
     Deno.exit(0);
   }
 
-  // Break is active — check if completed or expired
-  if (isBreakActive(state)) {
+  // Auto-reset idle sessions BEFORE checking limits
+  // This prevents false positives when users leave terminals open overnight
+  if (isSessionIdle(state) && !hasBreakToProcess(state)) {
+    state = resetSession(state);
+    await saveWellnessState(state);
+  }
+
+  // Check if there's a break to process (active, completed, or expired)
+  // Using hasBreakToProcess instead of isBreakActive ensures we handle
+  // completed breaks correctly instead of skipping to trigger a new one
+  if (hasBreakToProcess(state)) {
     if (isBreakCompleteOrExpired(state)) {
       // Break done → reset and allow through
       let newState = resetBreakState(state);
@@ -65,7 +120,8 @@ export async function runHookCheck(): Promise<void> {
 
   // Check if session limit reached
   if (isSessionLimitReached(state)) {
-    const newState = triggerBreak(state, "session_limit");
+    const apiContent = await fetchBreakContent("session_limit", state.powerBreak.recentActivityIds);
+    const newState = triggerBreak(state, "session_limit", apiContent);
     await saveWellnessState(newState);
     printBlockMessage(newState);
     Deno.exit(2);
@@ -73,7 +129,8 @@ export async function runHookCheck(): Promise<void> {
 
   // Check if power break is due
   if (isPowerBreakDue(state)) {
-    const newState = triggerBreak(state, "power_break");
+    const apiContent = await fetchBreakContent("power_break", state.powerBreak.recentActivityIds);
+    const newState = triggerBreak(state, "power_break", apiContent);
     await saveWellnessState(newState);
     printBlockMessage(newState);
     Deno.exit(2);
@@ -99,6 +156,12 @@ function printBlockMessage(state: WellnessState): void {
   const cooldownFormatted = formatMs(cooldownRemaining);
   const unlockTime = br.cooldownExpiresAt ? formatTimeOfDay(br.cooldownExpiresAt) : "soon";
 
+  const deepLink = br.deepLinkUrl;
+  const deepLinkLine = deepLink ? `\n  Open in app: ${deepLink}\n` : "";
+  const notifNote = br.suggestionId
+    ? "  (A push notification has been sent to your device)\n"
+    : "";
+
   if (br.type === "session_limit") {
     const timeWorked = getTimeWorkedFormatted(state);
     const msg = `
@@ -111,7 +174,7 @@ function printBlockMessage(state: WellnessState): void {
   Complete a LifePrint activity to continue:
     - Open the LifePrint app and do a workout, walk, or meditation
     - Or run: lifeprint wellness complete
-
+${notifNote}${deepLinkLine}
   Auto-unlock in ${cooldownFormatted} (${unlockTime})
 
 ══════════════════════════════════════════════════════════════
@@ -134,7 +197,7 @@ ${instructionLines}
   To continue:
     - Complete in the LifePrint app
     - Or run: lifeprint wellness complete
-
+${notifNote}${deepLinkLine}
   Auto-unlock in ${cooldownFormatted}
 
 ══════════════════════════════════════════════════════════════

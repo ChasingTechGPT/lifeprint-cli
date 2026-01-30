@@ -5,6 +5,7 @@
 import { cli } from "./cli/mod.ts";
 import { hasValidCredentials } from "./auth/credentials.ts";
 import { isConfigured, loadWellnessState } from "./wellness/state.ts";
+import { checkForUpdate } from "./cli/update-check.ts";
 
 /**
  * Check if this is a first run (no auth + no wellness config).
@@ -30,6 +31,12 @@ if (import.meta.main) {
       await setupCommand.parse([]);
     } else {
       await cli.parse(Deno.args);
+    }
+
+    // Fire-and-forget update check (skip for wellness and update commands)
+    const cmd = Deno.args[0];
+    if (cmd !== "wellness" && cmd !== "update") {
+      checkForUpdate().catch(() => {});
     }
   } catch (error) {
     if (error instanceof Error && error.message.includes("Unknown command")) {

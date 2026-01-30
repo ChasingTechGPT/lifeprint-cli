@@ -20,7 +20,7 @@ interface ClaudeHookMatcher {
 }
 
 interface ClaudeHookRule {
-  matcher: ClaudeHookMatcher;
+  matcher: ClaudeHookMatcher | string;
   hooks: ClaudeHookCommand[];
 }
 
@@ -161,7 +161,19 @@ export async function installWellnessHook(): Promise<void> {
   }
 
   // Check if already installed (deduplicate)
+  // Also clean up any malformed entries (old format without matcher/hooks wrapper)
   const hookCommand = hookScriptPath;
+  settings.hooks.UserPromptSubmit = settings.hooks.UserPromptSubmit.filter(
+    (rule) => {
+      // Remove malformed entries that reference our hook command but lack the hooks[] wrapper
+      const raw = rule as unknown as Record<string, unknown>;
+      if (!rule.hooks && raw["command"] === hookCommand) {
+        return false;
+      }
+      return true;
+    },
+  );
+
   const alreadyInstalled = settings.hooks.UserPromptSubmit.some(
     (rule) =>
       rule.hooks?.some(
@@ -173,9 +185,9 @@ export async function installWellnessHook(): Promise<void> {
     return; // Already installed, nothing to do
   }
 
-  // Add the hook entry (Claude Code expects { matcher: {}, hooks[] } format)
+  // Add the hook entry (Claude Code expects { matcher, hooks[] } format)
   settings.hooks.UserPromptSubmit.push({
-    matcher: {},
+    matcher: "",
     hooks: [
       {
         type: "command",

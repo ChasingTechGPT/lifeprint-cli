@@ -16,8 +16,9 @@ import { meditationCommand } from "./commands/meditation.ts";
 import { householdCommand } from "./commands/household.ts";
 import { wellnessCommand } from "./commands/wellness.ts";
 import { setupCommand } from "./commands/setup.ts";
+import { updateCommand } from "./commands/update.ts";
 
-const VERSION = "0.1.0";
+export const VERSION = "0.1.3";
 
 export const cli = new Command()
   .name("lifeprint")
@@ -39,4 +40,6 @@ export const cli = new Command()
   .command("household", householdCommand)
   // Wellness & Setup
   .command("wellness", wellnessCommand)
-  .command("setup", setupCommand);
+  .command("setup", setupCommand)
+  // Update
+  .command("update", updateCommand);
