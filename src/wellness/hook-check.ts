@@ -29,6 +29,9 @@ import {
 } from "./state.ts";
 import type { WellnessState } from "./state.ts";
 import { fetchBreakContent } from "./break-content.ts";
+import { openBrowser } from "../utils/browser.ts";
+import { evaluateContext, isContextSyncDue } from "./context-evaluator.ts";
+import { syncWellnessContext } from "./context-sync.ts";
 
 /**
  * Commands that should bypass the wellness check entirely.
@@ -99,6 +102,13 @@ export async function runHookCheck(): Promise<void> {
     await saveWellnessState(state);
   }
 
+  // Background context sync (fire-and-forget, non-blocking with 2s timeout)
+  if (isContextSyncDue(state)) {
+    syncWellnessContext(state).catch(() => {
+      // Sync failure is non-critical
+    });
+  }
+
   // Check if there's a break to process (active, completed, or expired)
   // Using hasBreakToProcess instead of isBreakActive ensures we handle
   // completed breaks correctly instead of skipping to trigger a new one
@@ -118,12 +128,25 @@ export async function runHookCheck(): Promise<void> {
     Deno.exit(2);
   }
 
+  // Context-aware break evaluation (zero I/O, uses cached schedule)
+  const contextEval = evaluateContext(state, promptText);
+  if (contextEval.decision === "BREAK_NOW" && contextEval.scheduledBreak) {
+    const sb = contextEval.scheduledBreak;
+    const apiContent = await fetchBreakContent("power_break", state.powerBreak.recentActivityIds);
+    const newState = triggerBreak(state, "power_break", apiContent);
+    await saveWellnessState(newState);
+    printBlockMessage(newState);
+    openBreakPage(newState);
+    Deno.exit(2);
+  }
+
   // Check if session limit reached
   if (isSessionLimitReached(state)) {
     const apiContent = await fetchBreakContent("session_limit", state.powerBreak.recentActivityIds);
     const newState = triggerBreak(state, "session_limit", apiContent);
     await saveWellnessState(newState);
     printBlockMessage(newState);
+    openBreakPage(newState);
     Deno.exit(2);
   }
 
@@ -133,6 +156,7 @@ export async function runHookCheck(): Promise<void> {
     const newState = triggerBreak(state, "power_break", apiContent);
     await saveWellnessState(newState);
     printBlockMessage(newState);
+    openBreakPage(newState);
     Deno.exit(2);
   }
 
@@ -140,8 +164,8 @@ export async function runHookCheck(): Promise<void> {
   const newState = recordPrompt(state);
   await saveWellnessState(newState);
 
-  // Inject context about session timer
-  const context = buildContext(newState);
+  // Inject context about session timer (includes BREAK_SOON/SUGGEST nudges)
+  const context = buildContext(newState, contextEval);
   if (context) {
     const output = JSON.stringify(context);
     await Deno.stdout.write(new TextEncoder().encode(output));
@@ -213,7 +237,42 @@ interface HookContextOutput {
   };
 }
 
-function buildContext(state: WellnessState): HookContextOutput | null {
+/**
+ * Build the URL for the wellness break web page.
+ * All display data travels via query params so the page needs no API call.
+ */
+function buildBreakWebUrl(state: WellnessState): string {
+  const br = state.currentBreak;
+  const params = new URLSearchParams();
+
+  if (br.suggestionId) params.set("suggestion_id", br.suggestionId);
+  if (br.type) params.set("break_type", br.type);
+  if (br.contentType) params.set("content_type", br.contentType);
+  if (br.activityName) params.set("name", br.activityName);
+  if (br.cooldownExpiresAt) params.set("cooldown_expires", br.cooldownExpiresAt);
+
+  return `https://lifeprintpro.com/wellness/break?${params.toString()}`;
+}
+
+/**
+ * Fire-and-forget: open the wellness break web page in the browser.
+ * Only called when a break is first triggered, not on re-blocks.
+ */
+function openBreakPage(state: WellnessState): void {
+  try {
+    const url = buildBreakWebUrl(state);
+    openBrowser(url).catch(() => {
+      // Browser open failed silently - user still sees terminal message
+    });
+  } catch {
+    // Ignore errors - the terminal message is the primary UX
+  }
+}
+
+function buildContext(
+  state: WellnessState,
+  contextEval?: { decision: string; message?: string },
+): HookContextOutput | null {
   const parts: string[] = [];
   const timeWorked = getTimeWorkedFormatted(state);
 
@@ -221,7 +280,10 @@ function buildContext(state: WellnessState): HookContextOutput | null {
     parts.push(`Working for ${timeWorked}`);
   }
 
-  if (state.config.powerBreaks.enabled) {
+  // Include BREAK_SOON or SUGGEST nudge as non-blocking context
+  if (contextEval && (contextEval.decision === "BREAK_SOON" || contextEval.decision === "SUGGEST") && contextEval.message) {
+    parts.push(contextEval.message);
+  } else if (state.config.powerBreaks.enabled) {
     const nextBreak = getTimeUntilNextBreak(state);
     if (nextBreak !== null && nextBreak > 0) {
       parts.push(`Next power break in ${formatMs(nextBreak)}`);

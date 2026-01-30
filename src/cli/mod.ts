@@ -18,7 +18,7 @@ import { wellnessCommand } from "./commands/wellness.ts";
 import { setupCommand } from "./commands/setup.ts";
 import { updateCommand } from "./commands/update.ts";
 
-export const VERSION = "0.1.3";
+export const VERSION = "0.1.4";
 
 export const cli = new Command()
   .name("lifeprint")

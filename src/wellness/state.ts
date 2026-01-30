@@ -57,6 +57,23 @@ export interface WellnessSync {
   }>;
 }
 
+export interface ScheduledBreak {
+  time: string;
+  suggestionId: string;
+  contentType: string;
+  name: string;
+  priority: "high" | "normal";
+  leadTimeMinutes: number;
+  reason?: string;
+}
+
+export interface WellnessContext {
+  lastSyncAt: string | null;
+  scheduledBreaks: ScheduledBreak[];
+  userMealTimes: Record<string, string>;
+  isAssignedCook: Record<string, boolean>;
+}
+
 export interface WellnessState {
   version: 1;
   config: WellnessConfig;
@@ -64,6 +81,7 @@ export interface WellnessState {
   currentBreak: WellnessCurrentBreak;
   powerBreak: WellnessPowerBreak;
   sync: WellnessSync;
+  context: WellnessContext;
 }
 
 // --- Defaults ---
@@ -107,6 +125,12 @@ export function createDefaultState(): WellnessState {
     sync: {
       lastSyncAt: null,
       pendingCompletions: [],
+    },
+    context: {
+      lastSyncAt: null,
+      scheduledBreaks: [],
+      userMealTimes: {},
+      isAssignedCook: {},
     },
   };
 }

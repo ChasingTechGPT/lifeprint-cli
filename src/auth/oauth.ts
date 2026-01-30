@@ -6,6 +6,7 @@
 import { encodeBase64Url } from "@std/encoding/base64url";
 import { saveCredentials, type StoredCredentials } from "./credentials.ts";
 import { getApiBaseUrl } from "../api/client.ts";
+import { openBrowser } from "../utils/browser.ts";
 
 const CLIENT_ID = "lifeprint-cli";
 const CALLBACK_PORTS = [8080, 8081, 8082, 8083, 8084];
@@ -122,25 +123,6 @@ async function startCallbackServer(
   throw new Error(
     `Could not start callback server. Ports ${CALLBACK_PORTS.join(", ")} are all in use.`
   );
-}
-
-/**
- * Open a URL in the default browser
- */
-async function openBrowser(url: string): Promise<void> {
-  const cmd = Deno.build.os === "darwin"
-    ? ["open", url]
-    : Deno.build.os === "windows"
-      ? ["cmd", "/c", "start", url]
-      : ["xdg-open", url];
-
-  const command = new Deno.Command(cmd[0], {
-    args: cmd.slice(1),
-    stdout: "null",
-    stderr: "null",
-  });
-
-  await command.spawn();
 }
 
 /**
