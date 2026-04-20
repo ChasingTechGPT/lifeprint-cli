@@ -19,6 +19,7 @@ import { setupCommand } from "./commands/setup.ts";
 import { updateCommand } from "./commands/update.ts";
 import { daemonCommand } from "./commands/daemon.ts";
 import { renderArtifactCommand } from "./commands/render-artifact.ts";
+import { workCommand } from "./commands/work.ts";
 
 export const VERSION = "0.1.5";
 
@@ -47,5 +48,7 @@ export const cli = new Command()
   .command("daemon", daemonCommand)
   // Sage artifact rendering (sage-for-builders)
   .command("render-artifact", renderArtifactCommand)
+  // Work session tracking (sage-for-builders + saework)
+  .command("work", workCommand)
   // Update
   .command("update", updateCommand);
