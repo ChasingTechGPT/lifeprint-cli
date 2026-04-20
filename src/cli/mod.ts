@@ -17,8 +17,10 @@ import { householdCommand } from "./commands/household.ts";
 import { wellnessCommand } from "./commands/wellness.ts";
 import { setupCommand } from "./commands/setup.ts";
 import { updateCommand } from "./commands/update.ts";
+import { daemonCommand } from "./commands/daemon.ts";
+import { renderArtifactCommand } from "./commands/render-artifact.ts";
 
-export const VERSION = "0.1.4";
+export const VERSION = "0.1.5";
 
 export const cli = new Command()
   .name("lifeprint")
@@ -41,5 +43,9 @@ export const cli = new Command()
   // Wellness & Setup
   .command("wellness", wellnessCommand)
   .command("setup", setupCommand)
+  // Daemon
+  .command("daemon", daemonCommand)
+  // Sage artifact rendering (sage-for-builders)
+  .command("render-artifact", renderArtifactCommand)
   // Update
   .command("update", updateCommand);
