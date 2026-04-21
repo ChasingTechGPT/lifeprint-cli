@@ -100,6 +100,22 @@ function escape(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+/**
+ * Sanitize an artifact_id for use as a filename component.
+ *
+ * Security rationale: the artifact_id flows from MCP tool response JSON
+ * into the path `/tmp/lifeprint-artifact-<id>.html`. A malicious payload
+ * containing path-traversal sequences (e.g. `../../../etc/passwd`) would
+ * otherwise let the attacker write HTML to arbitrary filesystem locations
+ * via this CLI. We reject everything except alphanumeric + underscore +
+ * dash, and cap length at 64 chars to avoid filesystem-limit edge cases.
+ */
+function sanitizeArtifactId(id: string | undefined): string {
+  if (!id) return `art_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const cleaned = String(id).replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64);
+  return cleaned || `art_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 function domainColor(d: unknown): string {
   const k = String(d ?? "wellness");
   switch (k) {
@@ -377,6 +393,7 @@ function wrapInShell(kind: ArtifactKind, body: string, generatedAt: string): str
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'">
 <title>Sage · ${escape(KIND_LABELS[kind])}</title>
 <style>
   body { margin: 0; background: ${TOKENS.colorBackground}; font-family: ${TOKENS.fontSans}; color: ${TOKENS.colorText}; padding: 24px; }
@@ -510,7 +527,7 @@ export const renderArtifactCommand = new Command()
       Deno.exit(2);
     }
 
-    const id = artifact.artifact_id ?? `ad_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const id = sanitizeArtifactId(artifact.artifact_id);
     const outPath = options.out ?? `/tmp/lifeprint-artifact-${id}.html`;
     const html = renderArtifactToHtml(artifact);
     await Deno.writeTextFile(outPath, html);
