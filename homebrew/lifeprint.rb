@@ -7,16 +7,16 @@ class Lifeprint < Formula
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/ChasingTechGPT/lifeprint-cli/releases/download/v#{version}/lifeprint-macos-arm64"
-      sha256 "fa6a4ed2cbbba262d1e096578ad2d5aad338ec7a1ef25a36bf978ac3ca4f84cb"
+      sha256 "4f8f61a67714599384e4373d2aa0940016da3815174cfd404c0ccf93f649fc35"
     else
       url "https://github.com/ChasingTechGPT/lifeprint-cli/releases/download/v#{version}/lifeprint-macos-x64"
-      sha256 "20615628e0fbb08cb28a89deb9df491dceb489e19ec7bb21cc2ae9eac9bcb0da"
+      sha256 "5419ffdc053a4b0d499206dfa26da91428a4b938bde5b1177f07b3cd558cbcc8"
     end
   end
 
   on_linux do
     url "https://github.com/ChasingTechGPT/lifeprint-cli/releases/download/v#{version}/lifeprint-linux"
-    sha256 "ab6b207ae60ccf199ad04fdab614cdba4df3ba1a3c72d7014f1486a9eedf405a"
+    sha256 "63e83eb6c696f66d2664037fa78a139d3fa337426e108a3fd414e5ce4c525564"
   end
 
   def install
