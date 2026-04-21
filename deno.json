@@ -1,6 +1,6 @@
 {
   "name": "@lifeprint/cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "exports": "./src/mod.ts",
   "tasks": {
     "dev": "deno run --allow-net --allow-read --allow-write --allow-env --allow-run src/mod.ts",
@@ -11,6 +11,7 @@
     "compile:linux": "deno compile --allow-net --allow-read --allow-write --allow-env --allow-run --target=x86_64-unknown-linux-gnu --output=dist/lifeprint-linux src/mod.ts",
     "compile:windows": "deno compile --allow-net --allow-read --allow-write --allow-env --allow-run --target=x86_64-pc-windows-msvc --output=dist/lifeprint-windows.exe src/mod.ts",
     "install": "deno install --allow-net --allow-read --allow-write --allow-env --allow-run --global --name=lifeprint --config=deno.json src/mod.ts",
+    "daemon": "deno run --allow-net --allow-read --allow-write --allow-env --allow-run src/daemon/mod.ts",
     "test": "deno test --allow-net --allow-read --allow-write --allow-env"
   },
   "imports": {

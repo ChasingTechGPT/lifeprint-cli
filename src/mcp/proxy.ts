@@ -12,9 +12,12 @@
  *     are validated against oauth_tokens via _shared/OAuth)
  *   - Scope-gates tools per OAuth session scopes (sage-mcp/scope-map.ts)
  *
- * To roll back: change `MCP_ENDPOINT` below back to `/lifeprint-mcp`.
- * lifeprint-mcp remains deployed for backward-compat during the
- * ~30-day deprecation window.
+ * The prior endpoint (/lifeprint-mcp) was archived 2026-04-21 per
+ * PRD-B02 and the deployment was removed via
+ * `supabase functions delete lifeprint-mcp`. Source was moved to
+ * supabase/functions/_archived/lifeprint-mcp-B02/. If you ever need
+ * to roll back, restore the function from the archive dir and
+ * redeploy before flipping MCP_ENDPOINT back.
  */
 
 import { getValidAccessToken } from "../auth/token-refresh.ts";
@@ -67,7 +70,7 @@ function handleInitialize(id: string | number | null): void {
     },
     serverInfo: {
       name: "lifeprint-cli",
-      version: "0.1.0",
+      version: "0.2.0",
     },
   });
 }

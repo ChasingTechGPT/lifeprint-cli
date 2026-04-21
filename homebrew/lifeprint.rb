@@ -1,7 +1,7 @@
 class Lifeprint < Formula
   desc "AI-powered lifestyle planning from your terminal"
   homepage "https://lifeprintpro.com/cli"
-  version "0.1.0"
+  version "0.2.0"
   license "MIT"
 
   on_macos do

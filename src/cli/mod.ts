@@ -21,7 +21,7 @@ import { daemonCommand } from "./commands/daemon.ts";
 import { renderArtifactCommand } from "./commands/render-artifact.ts";
 import { workCommand } from "./commands/work.ts";
 
-export const VERSION = "0.1.5";
+export const VERSION = "0.2.0";
 
 export const cli = new Command()
   .name("lifeprint")
