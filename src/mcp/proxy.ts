@@ -1,5 +1,20 @@
 /**
- * MCP proxy that forwards requests to the remote lifeprint-mcp endpoint
+ * MCP proxy that forwards requests to the remote sage-mcp endpoint.
+ *
+ * PRD-B02 (2026-04-21): Migrated from /lifeprint-mcp to /sage-mcp.
+ *   - sage-mcp is the strategic MCP server per PRD-02 ADR-001
+ *   - Exposes all 42 tools from sage_chat_tools registry (vs
+ *     lifeprint-mcp's 25 hand-registered UniversalTools)
+ *   - New tools ship via DB migration and show up in tools/list
+ *     automatically (no hand-registration)
+ *   - Supports both Supabase JWT and opaque OAuth bearers
+ *     (sage-mcp/auth.ts detects JWT shape; CLI's opaque bearers
+ *     are validated against oauth_tokens via _shared/OAuth)
+ *   - Scope-gates tools per OAuth session scopes (sage-mcp/scope-map.ts)
+ *
+ * To roll back: change `MCP_ENDPOINT` below back to `/lifeprint-mcp`.
+ * lifeprint-mcp remains deployed for backward-compat during the
+ * ~30-day deprecation window.
  */
 
 import { getValidAccessToken } from "../auth/token-refresh.ts";
@@ -12,7 +27,7 @@ import {
   type JsonRpcRequest,
 } from "./stdio.ts";
 
-const MCP_ENDPOINT = "/lifeprint-mcp";
+const MCP_ENDPOINT = "/sage-mcp";
 
 /**
  * Forward a JSON-RPC request to the remote MCP endpoint
